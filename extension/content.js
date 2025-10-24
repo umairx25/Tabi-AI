@@ -171,5 +171,54 @@ script injection, including displaying and removing the overlay.
     }
   });
 
+
+// === LanguageModel bridge ===
+let __lmSession = null;
+
+chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
+  if (msg.type !== "GET_INTENT") return;
+
+  try {
+    // Ensure LanguageModel API exists
+    if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
+      console.warn("[LM] LanguageModel not available");
+      sendResponse({ result: null });
+      return true;
+    }
+
+    // Reuse an existing session or create a new one
+    if (!__lmSession) {
+      console.log("[LM] Creating new LanguageModel session...");
+      __lmSession = await LanguageModel.create();
+    }
+
+    // Define schema and user prompt
+    const schema = {
+      type: "string",
+      enum: ["search_tabs", "generate_tabs", "organize_tabs", "close_tabs"],
+    };
+
+    const query = `
+    Categorize the user's intent into one of: search_tabs, generate_tabs, organize_tabs, close_tabs.
+    Return ONLY the label. Nothing else.
+    User: "${msg.prompt}"
+    `;
+
+    const result = await __lmSession.prompt(query, { responseConstraint: schema });
+    const intent = (result || "").trim();
+
+    console.log("[LM] Model returned intent:", intent);
+    sendResponse({ result: intent.length ? intent : null });
+  } catch (err) {
+    console.error("[LM] Error running model:", err);
+    __lmSession = null; // reset for next call
+    sendResponse({ result: null });
+  }
+
+  return true; // Keep message channel open for async response
+});
+
+
+
   window.__tabi_toggle__ = toggleOverlay;
 })();
