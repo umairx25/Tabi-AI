@@ -13,7 +13,7 @@ script injection, including displaying and removing the overlay.
   let overlayEl = null;
   let shadow = null;
 
-/* Creates the overlay injected into the DOM*/
+  /* Creates the overlay injected into the DOM*/
   function createOverlay() {
     overlayEl = document.createElement("div");
     overlayEl.id = "tabi-overlay-host";
@@ -23,7 +23,7 @@ script injection, including displaying and removing the overlay.
       "left: 52%",
       "transform: translate(-50%, -50%)",
       "width: 600px",
-      "height: 400px", 
+      "height: 400px",
       "z-index: 2147483647",
       "display: flex",
       "align-items: stretch",
@@ -33,10 +33,10 @@ script injection, including displaying and removing the overlay.
 
     // Remove overlay if mouse click detected outside
     overlayEl.addEventListener("mousedown", (e) => {
-    if (e.target === overlayEl) {
-      destroyOverlay();
-    }
-  });
+      if (e.target === overlayEl) {
+        destroyOverlay();
+      }
+    });
 
     document.documentElement.appendChild(overlayEl);
     shadow = overlayEl.attachShadow({ mode: "open" });
@@ -111,7 +111,7 @@ script injection, including displaying and removing the overlay.
 
     wrapper.appendChild(iframe);
     iframe.onload = () => {
-        iframe.contentWindow.postMessage({ type: "FOCUS_SEARCH" }, "*");
+      iframe.contentWindow.postMessage({ type: "FOCUS_SEARCH" }, "*");
     };
 
 
@@ -131,8 +131,8 @@ script injection, including displaying and removing the overlay.
 
     // Close overlay if click detected outside
     backdrop.addEventListener("mousedown", () => {
-    destroyOverlay();
-  });
+      destroyOverlay();
+    });
 
     document.documentElement.insertBefore(backdrop, overlayEl);
     overlayEl.__backdrop = backdrop;
@@ -169,6 +169,54 @@ script injection, including displaying and removing the overlay.
     if (msg?.type === "tabi_TOGGLE") {
       toggleOverlay();
     }
+  });
+
+  // === Summarizer bridge for Tabi ===
+  // Handles requests from popup.js asking for a summarized version of text.
+  let __summarizerSession = null;
+
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type !== "GET_SUMMARY") return;
+
+    (async () => {
+      try {
+        // Check if the API exists
+        if (typeof Summarizer === "undefined" || !Summarizer?.create) {
+          console.warn("[Summarizer] Summarizer API unavailable in this context");
+          sendResponse({ result: null });
+          return;
+        }
+
+        // Reuse existing session
+        if (!__summarizerSession) {
+          console.log("[Summarizer] Creating new summarizer session...");
+          __summarizerSession = await Summarizer.create();
+        }
+
+        // Validate input
+        const text = (msg.text || "").trim();
+        if (!text) {
+          sendResponse({ result: null });
+          return;
+        }
+
+        // Perform summarization locally
+        const summary = await __summarizerSession.summarize(text, {
+          type: "tl;dr", // Force concise summaries
+          length: "short", // Encourage brevity
+          format: "plain_text", // No markdown or bullets
+          output_language: "en", // Make sure it uses English output
+        }); console.log("[Summarizer] Summary result:", summary);
+
+        sendResponse({ result: summary });
+      } catch (err) {
+        console.error("[Summarizer] Error:", err);
+        __summarizerSession = null; // reset session on error
+        sendResponse({ result: null });
+      }
+    })();
+
+    return true; // keep message port open for async response
   });
 
   window.__tabi_toggle__ = toggleOverlay;

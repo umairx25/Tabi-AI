@@ -10,6 +10,25 @@ const BACKEND_URL = "http://127.0.0.1:8010";
 
 let search_suggestion;
 
+
+// Ask the content script for a local summary using the Summarizer API
+async function getSummary(text) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+  return new Promise((resolve) => {
+    chrome.tabs.sendMessage(tab.id, { type: "GET_SUMMARY", text }, (resp) => {
+      if (chrome.runtime.lastError) {
+        console.warn("Summary runtime error:", chrome.runtime.lastError.message);
+        resolve(null);
+      } else {
+        console.log("[Popup] Local summary:", resp?.result);
+        resolve(resp?.result || null);
+      }
+    });
+  });
+}
+
+
 /**
  * Sets the status UI in the popup
  */
@@ -53,25 +72,43 @@ function setStatus(message, isLoading = false, isError = false) {
  */
 async function execute_cmd() {
   const userPrompt = input.value.trim();
-
   if (!userPrompt) return;
+
   setStatus("Executing command…", true);
 
-  // Get currently open tabs to send as context
+  // === Local summarization guard ===
+  console.log("[Tabi] Evaluating if summarization is needed…");
+  const shouldSummarize = userPrompt.split(" ").length > 10; // Only summarize long prompts
+  let summarized = null;
+
+  if (shouldSummarize) {
+    console.log("[Tabi] Trying to summarize prompt locally…");
+    summarized = await getSummary(userPrompt);
+
+    if (summarized) {
+      console.log("[Tabi] Summary result:", summarized);
+    } else {
+      console.warn("[Tabi] No summary produced, using original prompt.");
+    }
+  } else {
+    console.log("[Tabi] Short prompt — skipping summarization.");
+  }
+
+  const finalPrompt = summarized || userPrompt;
+
+  // === Continue as normal ===
   const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
   const focusedWin = windows.find(w => w.focused) || windows[0];
-
   if (!focusedWin) {
     console.error("No normal browser window found.");
     return;
   }
 
-
   const tabs = await chrome.tabs.query({ windowId: focusedWin.id });
   const tabGroups = await chrome.tabGroups.query({ windowId: focusedWin.id });
 
-  console.warn("Tabs:", tabs)
-  console.warn("Groups: ", tabGroups)
+  console.warn("Tabs:", tabs);
+  console.warn("Groups:", tabGroups);
 
   const groupedTabs = [];
 
@@ -103,17 +140,14 @@ async function execute_cmd() {
     });
   }
 
-  console.warn(groupedTabs)
-
   const client_id = await getClientId();
 
-  // Send all the tabs, organized in tab groups, to the agent as context
   try {
     const response = await fetch(`${BACKEND_URL}/agent`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        prompt: userPrompt,
+        prompt: finalPrompt,
         context: { tabs: groupedTabs, client_id: client_id },
       }),
     });
@@ -125,10 +159,9 @@ async function execute_cmd() {
       return;
     }
 
-
     const result = await response.json();
     console.warn("Agent result:", result);
-    console.warn("Agent result of type", typeof (result))
+    console.warn("Agent result of type", typeof result);
 
     // Execute function based on agent's response
     if (result.action === "organize_tabs") {
@@ -147,6 +180,7 @@ async function execute_cmd() {
     setStatus("Failed to execute command.", false, true);
   }
 }
+
 
 /**
  * Handle actions returned by the backend agent
@@ -470,7 +504,7 @@ window.addEventListener("message", async (event) => {
       { label: "Extensions", type: "chrome_extensions", url: "chrome://extensions/" },
       { label: "Clear Browsing Data", type: "chrome_clear_data", url: "chrome://settings/clearBrowserData" },
       { label: "Passwords", type: "chrome_passwords", url: "chrome://settings/passwords" },
-      { label: "Chrome Webstore", type: "chrome_webstore", url: "https://chromewebstore.google.com/"}
+      { label: "Chrome Webstore", type: "chrome_webstore", url: "https://chromewebstore.google.com/" }
     ];
 
 
@@ -543,16 +577,16 @@ function show_results(list) {
         };
 
         const colorMap = {
-            "bookmark": "#00A2FF",
-            "chrome_bookmarks": "#00A2FF",
-            "tab": "#00ff99",
-            "chrome_settings": "#686f77",
-            "chrome_clear_data": "#FF6B6B",
-            "chrome_webstore": "#C792EA"
+          "bookmark": "#00A2FF",
+          "chrome_bookmarks": "#00A2FF",
+          "tab": "#00ff99",
+          "chrome_settings": "#686f77",
+          "chrome_clear_data": "#FF6B6B",
+          "chrome_webstore": "#C792EA"
         };
 
         icon.className = ICON_MAP[data.value.type] || "fa-solid fa-circle-question result-icon";
-        icon.style=`color:${colorMap[data.value.type]};`
+        icon.style = `color:${colorMap[data.value.type]};`
 
         // Layout container
         const wrapper = document.createElement("div");
