@@ -9,9 +9,6 @@ from pydantic_ai import Agent
 from dataclasses import asdict
 from dotenv import load_dotenv
 from schemas import Result
-import os
-from pymongo import MongoClient
-from log import log_interaction
 
 # ---------- ENV / CONFIG ----------
 load_dotenv()
@@ -50,7 +47,5 @@ async def run_agent(prompt: str, tabs: list[dict]):
     print(f"With model dumps (of type {type(output.dict())})", output.dict())
 
     res = output.dict()
-
-    log_interaction(prompt, res["action"], res["confidence"], res["output"], tabs)
     
     return res

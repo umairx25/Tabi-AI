@@ -6,7 +6,7 @@ and carrying out in-browser actions (like modifying/creating/switching tabs).
 
 const input = document.getElementById("search-input");
 const results = document.getElementById("results");
-const BACKEND_URL = "http://127.0.0.1:8000";
+const BACKEND_URL = "http://127.0.0.1:8010";
 
 let search_suggestion;
 

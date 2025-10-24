@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Tabi",
+  "name": "Tabi AI",
   "version": "0.1",
   "description": "An intelligence layer for your browser.",
   "permissions": [
