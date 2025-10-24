@@ -10,6 +10,35 @@ const BACKEND_URL = "http://127.0.0.1:8010";
 
 let search_suggestion;
 
+let session = null;
+
+async function getIntent(prompt) {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    return await new Promise((resolve) => {
+      chrome.tabs.sendMessage(tab.id, { type: "GET_INTENT", prompt }, (resp) => {
+        if (chrome.runtime.lastError) {
+          console.error("Runtime error:", chrome.runtime.lastError.message);
+          resolve(null);
+          return;
+        }
+        if (!resp || !resp.result) {
+          console.warn("Local LanguageModel failed or unavailable.");
+          resolve(null);
+          return;
+        }
+        console.log("Intent from local model:", resp.result);
+        resolve(resp.result);
+      });
+    });
+  } catch (err) {
+    console.error("getIntent() failed:", err);
+    return null;
+  }
+}
+
+
 /**
  * Sets the status UI in the popup
  */
@@ -57,6 +86,12 @@ async function execute_cmd() {
   if (!userPrompt) return;
   setStatus("Executing command…", true);
 
+  const intent = await getIntent(userPrompt);
+  console.log("intentLlm:", intent);
+  if (!intent) {
+    setStatus("Unable to determine intent (local & backend failed)", false, true);
+    return;
+  }
   // Get currently open tabs to send as context
   const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
   const focusedWin = windows.find(w => w.focused) || windows[0];
@@ -470,7 +505,7 @@ window.addEventListener("message", async (event) => {
       { label: "Extensions", type: "chrome_extensions", url: "chrome://extensions/" },
       { label: "Clear Browsing Data", type: "chrome_clear_data", url: "chrome://settings/clearBrowserData" },
       { label: "Passwords", type: "chrome_passwords", url: "chrome://settings/passwords" },
-      { label: "Chrome Webstore", type: "chrome_webstore", url: "https://chromewebstore.google.com/"}
+      { label: "Chrome Webstore", type: "chrome_webstore", url: "https://chromewebstore.google.com/" }
     ];
 
 
@@ -543,16 +578,16 @@ function show_results(list) {
         };
 
         const colorMap = {
-            "bookmark": "#00A2FF",
-            "chrome_bookmarks": "#00A2FF",
-            "tab": "#00ff99",
-            "chrome_settings": "#686f77",
-            "chrome_clear_data": "#FF6B6B",
-            "chrome_webstore": "#C792EA"
+          "bookmark": "#00A2FF",
+          "chrome_bookmarks": "#00A2FF",
+          "tab": "#00ff99",
+          "chrome_settings": "#686f77",
+          "chrome_clear_data": "#FF6B6B",
+          "chrome_webstore": "#C792EA"
         };
 
         icon.className = ICON_MAP[data.value.type] || "fa-solid fa-circle-question result-icon";
-        icon.style=`color:${colorMap[data.value.type]};`
+        icon.style = `color:${colorMap[data.value.type]};`
 
         // Layout container
         const wrapper = document.createElement("div");
