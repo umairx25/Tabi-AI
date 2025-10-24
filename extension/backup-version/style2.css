@@ -1,0 +1,440 @@
+/* Old style.css for neon purple search bar */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 420px;
+  height: 180px;
+  overflow: hidden;
+  /* background-color: #1f2937; */
+  background: transparent !important;
+  box-sizing: border-box;
+  border-radius: 16px;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  border-radius: 16px;
+  border-color: white;
+}
+
+#main-container,
+#poda,
+.wrapper {
+  background: transparent !important;
+}
+
+
+/* Main Container */
+#main-container {
+  width: 420px;
+  height: 210px;
+  padding: 16px;
+  box-sizing: border-box;
+  /* background: #1f2937; */
+  background: transparent;
+  background-color: transparent;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+html, body {
+  background: transparent !important;
+}
+
+/* ---------- Input with Effects ---------- */
+#poda {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+#main {
+  position: relative;
+}
+
+.input {
+  background-color: #010201;
+  border: none;
+  height: 40px;
+  border-radius: 10px;
+  color: #c0b9c0;
+  padding-inline: 59px;
+  font-size: 13px;
+  width: 90%;
+  margin-right: 0%;
+  padding-inline: 46px;
+}
+
+.input::placeholder {
+  color: #c0b9c0;
+}
+
+.input:focus {
+  outline: none;
+}
+
+
+#pink-mask {
+  pointer-events: none;
+  width: 30px;
+  height: 20px;
+  position: absolute;
+  background: #cf30aa;
+  top: 10px;
+  left: 5px;
+  filter: blur(20px);
+  opacity: 0.8;
+  animation: leftright 4s ease-in infinite;
+  transition: all 2s;
+}
+
+#main:hover>#pink-mask {
+  animation: rotate 10s linear infinite;
+  opacity: 0;
+}
+
+/* ---------- Animated Layers ---------- */
+.white,
+.border,
+.darkBorderBg,
+.glow {
+  max-height: 70px;
+  max-width: 314px;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  overflow: hidden;
+  z-index: -1;
+  border-radius: 12px;
+  filter: blur(3px);
+}
+
+.white {
+  max-height: 63px;
+  max-width: 307px;
+  border-radius: 10px;
+  filter: blur(2px);
+}
+
+.white::before {
+  content: "";
+  z-index: -2;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(83deg);
+  width: 600px;
+  height: 600px;
+  background-repeat: no-repeat;
+  filter: brightness(1.4);
+  background-image: conic-gradient(rgba(0, 0, 0, 0) 0%, #a099d8, rgba(0, 0, 0, 0) 8%, rgba(0, 0, 0, 0) 50%, #dfa2da, rgba(0, 0, 0, 0) 58%);
+  animation: rotate 4s linear infinite;
+}
+
+.border::before {
+  content: "";
+  z-index: -2;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(70deg);
+  width: 600px;
+  height: 600px;
+  background-repeat: no-repeat;
+  filter: brightness(1.3);
+  background-image: conic-gradient(#1c191c, #402fb5 5%, #1c191c 14%, #1c191c 50%, #cf30aa 60%, #1c191c 64%);
+  animation: rotate 4s 0.1s linear infinite;
+}
+
+.darkBorderBg::before {
+  content: "";
+  z-index: -2;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(82deg);
+  width: 600px;
+  height: 600px;
+  background-repeat: no-repeat;
+  background-image: conic-gradient(rgba(0, 0, 0, 0), #18116a, rgba(0, 0, 0, 0) 10%, rgba(0, 0, 0, 0) 50%, #6e1b60, rgba(0, 0, 0, 0) 60%);
+}
+
+.glow {
+  filter: blur(40px);
+  opacity: 0.25;
+  max-height: 130px;
+  max-width: 354px;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.glow::before {
+  content: "";
+  z-index: -2;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(60deg);
+  width: 999px;
+  height: 999px;
+  background-repeat: no-repeat;
+
+  /* Dark blue subtle gradient */
+  background-image: conic-gradient(from 0deg,
+      #0a1f44 0%,
+      #132b57 25%,
+      #1c3b72 50%,
+      #132b57 75%,
+      #0a1f44 100%);
+
+  /* Slow rotation */
+  animation: rotate 20s linear infinite;
+  opacity: 0.5;
+  /* extra safety in case parent is removed */
+}
+
+/* ---------- Animations ---------- */
+@keyframes rotate {
+  100% {
+    transform: translate(-50%, -50%) rotate(450deg);
+  }
+}
+
+@keyframes leftright {
+  0% {
+    transform: translate(0px, 0px);
+    opacity: 1;
+  }
+
+  49% {
+    transform: translate(250px, 0px);
+    opacity: 0;
+  }
+
+  80% {
+    transform: translate(-40px, 0px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate(0px, 0px);
+    opacity: 1;
+  }
+}
+
+/* ---------- Buttons & Select ---------- */
+.shortcut-btn {
+  padding: 10px 16px;
+  background-color: #64748b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+  gap: 12px;
+}
+
+.shortcut-btn:hover {
+  background-color: #059669;
+}
+
+.icon-only {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* ---------- Tooltip ---------- */
+.icon-btn {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 2%;
+}
+
+.icon-btn .tooltip {
+  visibility: hidden;
+  opacity: 0;
+  background-color: #374151;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 4px 8px;
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 1;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.icon-btn:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.icon-plain {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.icon-plain:focus {
+  outline: none;
+}
+
+/* From Uiverse.io by cssbuttons-io */
+.shortcut-btn {
+  padding: 1.3em 3em;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  font-weight: 500;
+  color: white;
+  background-color: #23c483;
+  border: none;
+  border-radius: 45px;
+  box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease 0s;
+  cursor: pointer;
+  outline: none;
+  width: 70%;
+}
+
+.shortcut-btn:hover {
+  background-color: #23c483;
+  box-shadow: 0px 15px 20px rgba(46, 229, 157, 0.4);
+  color: #fff;
+  transform: translateY(-7px);
+}
+
+.shortcut-btn:active {
+  transform: translateY(-1px);
+}
+
+/* Results and loading text */
+
+/* Shared styles from https://codepen.io/traf/pen/oKbaqQ */
+#results {
+  /* display: block;
+  list-style: none;*/
+  margin-top: 10px;
+  /*border-radius: 12px; */
+  /* padding: 10px 16px; */
+  font-size: 0.95rem;
+  color: #ffffff;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  /* background: rgba(255, 255, 255, 0.05); */
+  /* border: 1px solid rgba(255, 255, 255, 0.15); */
+  /* box-shadow: 0 0 15px rgba(35, 196, 131, 0.2); */
+  transition: all 0.3s ease-in-out;
+  /* padding-left: 0; */
+  /* position: relative; */
+  height: 3px;
+}
+
+.progress {
+  height: 2px;
+  width: 160px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-value {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, #4ade80, #22c55e);
+  animation: progressAnimation 2s linear infinite;
+  transform-origin: left;
+}
+
+@keyframes progressAnimation {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Success and error styles */
+
+/* Base Popup */
+.popup {
+  margin: 10px auto;
+  box-shadow: 4px 4px 10px -10px rgba(0, 0, 0, 1);
+  width: fit-content;
+  max-width: 90%;
+  justify-content: space-around;
+  align-items: center;
+  display: flex;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: 400;
+  gap: 8px;
+}
+
+.popup svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.popup-icon svg {
+  display: flex;
+  align-items: center;
+}
+
+/* ✅ SUCCESS STYLE */
+.success-popup {
+  background-color: transparent;
+  border: transparent;
+}
+
+.success-icon path {
+  fill: #84d65a;
+}
+
+.success-message {
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+/* ERROR STYLE */
+.error-popup {
+  background-color: transparent;
+  border: transparent;
+}
+
+.error-icon path {
+  fill: #f87171;
+}
+
+.error-message {
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}

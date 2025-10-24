@@ -1,0 +1,59 @@
+<!-- popup.html: the main html page that contains the logic for the search bar -->
+
+<html style="background: transparent;">
+    
+    <head>
+        <link rel="stylesheet" href="style.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+        <meta charset="UTF-8" />
+    </head>
+    <body>
+        <!-- Load in the ears -->
+        <div class="ears">
+        <img src="icons/icon48.png" alt="Tabi ears" />
+      </div>
+<div class="navbar-container">
+  <div class="search-bar" >
+
+    <!-- Search svg -->
+    <div class = "search-holder" style="margin-right: 20px;">
+      <svg
+        class="searchIcon"
+        width="20px"
+        viewBox="0 0 24 24"
+        height="20px"
+        xmlns="http://www.w3.org/2000/svg"
+        style="margin-right: 10px !important; position: fixed; top: 10%; left: 2rem;"
+      >
+        <path fill="none" d="M0 0h24v24H0z"></path>
+        <path
+          d="M15.5 14h-.79l-.28-.27A6.518 6.518 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+        ></path>
+      </svg>
+    </div>
+
+    <!-- Input box -->
+    <div class="InputContainer">
+
+      <input
+        class="input"
+        id="search-input"
+        placeholder="Ask Tabi to..."
+        type="text"
+      />
+      <div class="enter-hint">⏎ Ask Tabi</div>
+
+    </div>
+  </div>
+
+  <!-- Display loading information -->
+  <div id="results" style="display: none;"></div>
+</div>
+
+  <!-- Scripts -->
+    <script type="module" src="popup.js"></script>
+    <script type="module" src="auto_complete.js"></script>
+    </body>
+</html>
+
+

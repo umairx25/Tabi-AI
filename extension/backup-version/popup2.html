@@ -1,0 +1,54 @@
+<!-- popup.html: old search bar with the purple neon glow. -->
+
+<!DOCTYPE html>
+<html lang="en" style="background: transparent !important;">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Tabi</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script type="module" src="popup.js"></script>
+    <style>
+    </style>
+</head>
+
+
+<body style="background: transparent !important;">
+    <div
+        style="display: flex; justify-content: space-between; align-items: center; gap: 12px; background: transparent;">
+
+        <div id="poda">
+            <div class="glow"></div>
+            <div class="darkBorderBg"></div>
+            <div class="darkBorderBg"></div>
+            <div class="darkBorderBg"></div>
+            <div class="white"></div>
+            <div class="border"></div>
+
+            <div id="main">
+                <input placeholder="Start me off for a trip to NYC..." type="text" class="input" id="main-input"
+                    style="margin-right: -8px; width: 120%; margin-top: 5px;"  />
+                <div id="input-mask"></div>
+                <div id="pink-mask"></div>
+            </div>
+        </div>
+
+        <div class="icon-btn" style="margin-top: 8px; margin-left:20px">
+            <button type="button" class="shortcut-btn icon-only" style="background-color: transparent;
+                  border: 1px solid rgba(255, 255, 255, 0.08); 
+                  box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+                  /* backdrop-filter: blur(2px); */
+                  margin-left: 20px;" id="search-btn">
+                <i class="fas fa-arrow-right"></i>
+            </button>
+
+            <span class="tooltip" style="margin-right: 40px; left:-28px;">Generates a group of tabs based on your
+                query</span>
+        </div>
+
+    </div>
+    <div id="results" style="display: none;"></div>
+</body>
