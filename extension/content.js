@@ -13,7 +13,7 @@ script injection, including displaying and removing the overlay.
   let overlayEl = null;
   let shadow = null;
 
-/* Creates the overlay injected into the DOM*/
+  /** Creates the overlay injected into the DOM. */
   function createOverlay() {
     overlayEl = document.createElement("div");
     overlayEl.id = "tabi-overlay-host";
@@ -33,10 +33,10 @@ script injection, including displaying and removing the overlay.
 
     // Remove overlay if mouse click detected outside
     overlayEl.addEventListener("mousedown", (e) => {
-    if (e.target === overlayEl) {
-      destroyOverlay();
-    }
-  });
+      if (e.target === overlayEl) {
+        destroyOverlay();
+      }
+    });
 
     document.documentElement.appendChild(overlayEl);
     shadow = overlayEl.attachShadow({ mode: "open" });
@@ -111,7 +111,7 @@ script injection, including displaying and removing the overlay.
 
     wrapper.appendChild(iframe);
     iframe.onload = () => {
-        iframe.contentWindow.postMessage({ type: "FOCUS_SEARCH" }, "*");
+      iframe.contentWindow.postMessage({ type: "FOCUS_SEARCH" }, "*");
     };
 
 
@@ -131,8 +131,8 @@ script injection, including displaying and removing the overlay.
 
     // Close overlay if click detected outside
     backdrop.addEventListener("mousedown", () => {
-    destroyOverlay();
-  });
+      destroyOverlay();
+    });
 
     document.documentElement.insertBefore(backdrop, overlayEl);
     overlayEl.__backdrop = backdrop;
@@ -140,7 +140,7 @@ script injection, including displaying and removing the overlay.
     overlayOpen = true;
   }
 
-  // Destroy the current overlay
+  /** Destroy the currently mounted overlay and clean event listeners. */
   function destroyOverlay() {
     if (!overlayEl) return;
     window.removeEventListener("keydown", escListener, true);
@@ -151,6 +151,7 @@ script injection, including displaying and removing the overlay.
     overlayOpen = false;
   }
 
+  /** Handle Escape key presses while the overlay is open. */
   function escListener(e) {
     if (e.key === "Escape") {
       destroyOverlay();
@@ -158,7 +159,7 @@ script injection, including displaying and removing the overlay.
     }
   }
 
-  // Toggle the overlay
+  /** Toggle the overlay visibility based on its current state. */
   function toggleOverlay() {
     if (overlayOpen) destroyOverlay();
     else createOverlay();
@@ -254,87 +255,88 @@ script injection, including displaying and removing the overlay.
 //   // ... rest of your existing handlers
 // });
 
-// === LanguageModel bridge ===
-let __lmSession = null;
+  // === LanguageModel bridge ===
+  let __lmSession = null;
 
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  // Handle GET_INTENT messages
-  if (msg.type === "GET_INTENT") {
-    (async () => {
-      try {
-        // Ensure LanguageModel API exists
-        if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
-          console.warn("[LM] LanguageModel not available");
+  /** Handle messages that rely on the Chrome Prompt API session. */
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    // Handle GET_INTENT messages
+    if (msg.type === "GET_INTENT") {
+      (async () => {
+        try {
+          // Ensure LanguageModel API exists
+          if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
+            console.warn("[LM] LanguageModel not available");
+            sendResponse({ result: null });
+            return;
+          }
+
+          // Reuse an existing session or create a new one
+          if (!__lmSession) {
+            console.log("[LM] Creating new LanguageModel session...");
+            __lmSession = await LanguageModel.create();
+          }
+
+          const schema = {
+            type: "string",
+            enum: ["search_tabs", "generate_tabs", "organize_tabs", "close_tabs"],
+          };
+
+          const query = `
+          Categorize the user's intent into one of: search_tabs, generate_tabs, organize_tabs, close_tabs.
+          Return ONLY the label. Nothing else.
+          User: "${msg.prompt}"
+          `;
+
+          const result = await __lmSession.prompt(query, { responseConstraint: schema });
+          const intent = (result || "").trim();
+
+          console.log("[LM] Model returned intent:", intent);
+          sendResponse({ result: intent.length ? intent : null });
+        } catch (err) {
+          console.error("[LM] Error running model:", err);
+          __lmSession = null;
           sendResponse({ result: null });
-          return;
         }
+      })();
 
-        // Reuse an existing session or create a new one
-        if (!__lmSession) {
-          console.log("[LM] Creating new LanguageModel session...");
-          __lmSession = await LanguageModel.create();
-        }
+      return true; // Keep the channel open for async response
+    }
 
-        const schema = {
-          type: "string",
-          enum: ["search_tabs", "generate_tabs", "organize_tabs", "close_tabs"],
-        };
+    // Handle PROCESS_WITH_SCHEMA messages
+    if (msg.type === "PROCESS_WITH_SCHEMA") {
+      (async () => {
+        try {
+          if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
+            console.warn("[LM] LanguageModel not available");
+            sendResponse({ result: null });
+            return;
+          }
 
-        const query = `
-        Categorize the user's intent into one of: search_tabs, generate_tabs, organize_tabs, close_tabs.
-        Return ONLY the label. Nothing else.
-        User: "${msg.prompt}"
-        `;
+          if (!__lmSession) {
+            console.log("[LM] Creating new LanguageModel session...");
+            __lmSession = await LanguageModel.create();
+          }
 
-        const result = await __lmSession.prompt(query, { responseConstraint: schema });
-        const intent = (result || "").trim();
+          const result = await __lmSession.prompt(msg.prompt, {
+            responseConstraint: msg.schema
+          });
 
-        console.log("[LM] Model returned intent:", intent);
-        sendResponse({ result: intent.length ? intent : null });
-      } catch (err) {
-        console.error("[LM] Error running model:", err);
-        __lmSession = null;
-        sendResponse({ result: null });
-      }
-    })();
-    
-    return true; // Keep the channel open for async response
-  }
-  
-  // Handle PROCESS_WITH_SCHEMA messages
-  if (msg.type === "PROCESS_WITH_SCHEMA") {
-    (async () => {
-      try {
-        if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
-          console.warn("[LM] LanguageModel not available");
+          console.log("[LM] Model returned structured result:", result);
+          sendResponse({ result: result || null });
+        } catch (err) {
+          console.error("[LM] Error running model:", err);
+          __lmSession = null;
           sendResponse({ result: null });
-          return;
         }
+      })();
 
-        if (!__lmSession) {
-          console.log("[LM] Creating new LanguageModel session...");
-          __lmSession = await LanguageModel.create();
-        }
+      return true; // Keep channel open
+    }
 
-        const result = await __lmSession.prompt(msg.prompt, { 
-          responseConstraint: msg.schema 
-        });
-
-        console.log("[LM] Model returned structured result:", result);
-        sendResponse({ result: result || null });
-      } catch (err) {
-        console.error("[LM] Error running model:", err);
-        __lmSession = null;
-        sendResponse({ result: null });
-      }
-    })();
-    
-    return true; // Keep channel open
-  }
-  
-  // For any other message types, don't handle them here
-  return false;
-});
+    // For any other message types, don't handle them here
+    return false;
+  });
 
 
 

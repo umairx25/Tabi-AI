@@ -27,10 +27,12 @@ class PromptRequest(BaseModel):
 @app.get("/")
 @app.head("/")
 def root():
+    """Return a lightweight health response for uptime checks."""
     return {"status": "Tabi's backend is live!"}
 
 @app.post("/agent")
 async def agent_route(req: PromptRequest):
+    """Proxy the prompt and browser context to the FastAPI agent service."""
     print(req.prompt)
     print(req.context)
     try:
