@@ -4,293 +4,18 @@ Handles the main javascript functions, including communicating with the backend 
 and carrying out in-browser actions (like modifying/creating/switching tabs).
 */
 
+import { getIntent, executeIntent, generateAISuggestion, generateLoadingMessage } from "./gemini-nano.js";
+
 const input = document.getElementById("search-input");
 const results = document.getElementById("results");
 const BACKEND_URL = "http://127.0.0.1:8010";
 
 let search_suggestion;
+let ai_suggestion;
 
-let session = null;
-
-async function getIntent(prompt) {
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    return await new Promise((resolve) => {
-      chrome.tabs.sendMessage(tab.id, { type: "GET_INTENT", prompt }, (resp) => {
-        if (chrome.runtime.lastError) {
-          console.error("Runtime error:", chrome.runtime.lastError.message);
-          resolve(null);
-          return;
-        }
-        if (!resp || !resp.result) {
-          console.warn("Local LanguageModel failed or unavailable.");
-          resolve(null);
-          return;
-        }
-        // console.log("Intent from local model:", resp.result);
-        resolve(resp.result);
-      });
-    });
-  } catch (err) {
-    console.error("getIntent() failed:", err);
-    return null;
-  }
-}
-
-
-async function executeIntent(intent, prompt, groupedTabs) {
-  try {
-
-    if (intent.startsWith('"') && intent.endsWith('"')) {
-      intent = intent.slice(1, -1);
-    }
-
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    console.log("executeIntent received: ", intent);
-    console.log("of type: ", typeof (intent));
-
-    // Define schemas equivalent to your Python Pydantic models
-    const schemas = {
-      "search_tabs": {
-        type: "object",
-        properties: {
-          action: { type: "string", enum: ["search_tabs"] },
-          output: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              url: { type: "string" },
-              description: { type: "string" }
-            },
-            required: ["title", "url", "description"]
-          },
-          confidence: { type: "number", minimum: 0, maximum: 1 }
-        },
-        required: ["action", "output", "confidence"]
-      },
-
-      "close_tabs": {
-        type: "object",
-        properties: {
-          action: { type: "string", enum: ["close_tabs"] },
-          output: {
-            type: "object",
-            properties: {
-              tabs: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    url: { type: "string" },
-                    description: { type: "string" }
-                  },
-                  required: ["title", "url", "description"]
-                }
-              }
-            },
-            required: ["tabs"]
-          },
-          confidence: { type: "number", minimum: 0, maximum: 1 }
-        },
-        required: ["action", "output", "confidence"]
-      },
-
-      "organize_tabs": {
-        type: "object",
-        properties: {
-          action: { type: "string", enum: ["organize_tabs"] },
-          output: {
-            type: "object",
-            properties: {
-              tabs: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    group_name: { type: "string" },
-                    tabs: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          title: { type: "string" },
-                          url: { type: "string" },
-                          description: { type: "string" }
-                        },
-                        required: ["title", "url", "description"]
-                      }
-                    }
-                  },
-                  required: ["group_name", "tabs"]
-                }
-              }
-            },
-            required: ["tabs"]
-          },
-          confidence: { type: "number", minimum: 0, maximum: 1 }
-        },
-        required: ["action", "output", "confidence"]
-      },
-
-      "generate_tabs": {
-        type: "object",
-        properties: {
-          action: { type: "string", enum: ["generate_tabs"] },
-          output: {
-            type: "object",
-            properties: {
-              group_name: { type: "string" },
-              tabs: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    url: { type: "string" },
-                    description: { type: "string" }
-                  },
-                  required: ["title", "url", "description"]
-                }
-              }
-            },
-            required: ["group_name", "tabs"]
-          },
-          confidence: { type: "number", minimum: 0, maximum: 1 }
-        },
-        required: ["action", "output", "confidence"]
-      }
-    };
-
-    // Get the appropriate schema based on intent
-    const schema = schemas[intent];
-
-    if (!schema) {
-      console.error("Unknown intent:", intent);
-      return null;
-    }
-
-    // Flatten grouped tabs into a simple list for the prompt
-    const allTabs = groupedTabs.flatMap(group =>
-      group.tabs.map(t => ({
-        title: t.title,
-        url: t.url,
-        group: group.group_name
-      }))
-    );
-
-    // Format tabs information for the prompt
-    const tabsInfo = allTabs.map((t, i) =>
-      `${i + 1}. [${t.group}] "${t.title}" - ${t.url}`
-    ).join("\n");
-
-    // Create the query for the model based on intent
-    let query = "";
-
-    if (intent === "search_tabs") {
-      query = `
-You are a tab search assistant. Find the tab that best matches the user's request.
-
-User request: "${prompt}"
-
-Available tabs:
-${tabsInfo}
-
-Return a JSON response with:
-- action: "search_tabs"
-- output: { title: "exact tab title", url: "exact tab url", description: "why this tab matches" }
-- confidence: a number between 0 and 1
-
-Return ONLY valid JSON. No additional text.`.trim();
-    }
-    else if (intent === "close_tabs") {
-      query = `
-You are a tab cleanup assistant. Identify which tabs should be closed based on the user's request.
-
-User request: "${prompt}"
-
-Available tabs:
-${tabsInfo}
-
-Return a JSON response with:
-- action: "close_tabs"
-- output: { tabs: [{ title: "exact title", url: "exact url", description: "reason" }, ...] }
-- confidence: a number between 0 and 1
-
-Return ONLY valid JSON. No additional text.`.trim();
-    }
-    else if (intent === "organize_tabs") {
-      query = `
-You are a tab organization assistant. Group the tabs into logical categories.
-
-User request: "${prompt}"
-
-Available tabs:
-${tabsInfo}
-
-Return a JSON response with:
-- action: "organize_tabs"
-- output: { tabs: [{ group_name: "category", tabs: [{ title, url, description }, ...] }, ...] }
-- confidence: a number between 0 and 1
-
-Return ONLY valid JSON. No additional text.`.trim();
-    }
-    else if (intent === "generate_tabs") {
-      query = `
-You are a tab generation assistant. Create a list of useful tabs/URLs based on the user's request.
-
-User request: "${prompt}"
-
-Return a JSON response with:
-- action: "generate_tabs"
-- output: { group_name: "descriptive name", tabs: [{ title: "page title", url: "full url", description: "what it's for" }, ...] }
-- confidence: a number between 0 and 1
-
-Generate 5-10 relevant, high-quality URLs. Return ONLY valid JSON. No additional text.`.trim();
-    }
-
-    // Send message to content script to call local model with schema
-    return await new Promise((resolve) => {
-      chrome.tabs.sendMessage(
-        tab.id,
-        {
-          type: "PROCESS_WITH_SCHEMA",
-          prompt: query,
-          schema: schema
-        },
-        (resp) => {
-          if (chrome.runtime.lastError) {
-            console.error("Runtime error:", chrome.runtime.lastError.message);
-            resolve(null);
-            return;
-          }
-          if (!resp || !resp.result) {
-            console.warn("Local LanguageModel failed or unavailable.");
-            resolve(null);
-            return;
-          }
-
-          try {
-            // Parse the JSON response
-            const parsed = JSON.parse(resp.result);
-            console.log("Parsed local model response:", parsed);
-            resolve(parsed);
-          } catch (err) {
-            console.error("Failed to parse model response:", err);
-            console.error("Raw response was:", resp.result);
-            resolve(null);
-          }
-        }
-      );
-    });
-
-  } catch (err) {
-    console.error("executeIntent() failed:", err);
-    return null;
-  }
-}
+(async () => {
+  ai_suggestion = await generateAISuggestion();
+})();
 
 
 /**
@@ -338,10 +63,12 @@ async function execute_cmd() {
   const userPrompt = input.value.trim();
 
   if (!userPrompt) return;
-  setStatus("Executing command…", true);
-
+  
   const intent = await getIntent(userPrompt);
   console.log("intentLlm:", intent);
+
+  const load_msg = await generateLoadingMessage(userPrompt, intent)
+  setStatus(load_msg, true);
 
   if (!intent) {
     setStatus("Unable to determine intent (local & backend failed)", false, true);
@@ -429,18 +156,6 @@ async function execute_cmd() {
       result = await response.json();
       console.warn("Agent result:", result);
       console.warn("Agent result of type", typeof (result))
-    }
-
-
-    // Execute function based on agent's response
-    if (result.action === "organize_tabs") {
-      setStatus("Organizing tabs…", true);
-    } else if (result.action === "generate_tabs") {
-      setStatus("Generating tabs…", true);
-    } else if (result.action === "search_tabs") {
-      setStatus("Searching tabs…", true);
-    } else if (result.action === "close_tabs") {
-      setStatus("Cleaning up your tabs…", true);
     }
 
     await handleAgentResponse(result, tabs, focusedWin);
@@ -662,14 +377,22 @@ if (input) {
 }
 
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async() => {
   if (!input) return;
 
-  search_suggestion = cycle_suggestions();
-  input.placeholder = search_suggestion;
+  // Wait for the cached suggestion (in case it's still loading)
+  if (!ai_suggestion) {
+    ai_suggestion = await generateAISuggestion();
+  }
+
+  if (ai_suggestion) {
+    input.placeholder = ai_suggestion;
+  } else {
+    input.placeholder = cycle_suggestions();
+  }
+
   input.focus();
   input.select();
-
 });
 
 
@@ -742,6 +465,7 @@ async function getAllBookmarkTitles() {
   });
 }
 
+
 window.addEventListener("message", async (event) => {
   if (event.data?.type === "FOCUS_SEARCH") {
     const input = document.getElementById("search-input");
@@ -761,9 +485,8 @@ window.addEventListener("message", async (event) => {
       type: "tab"
     }));
 
-    const bookmark_titles = await getAllBookmarkTitles();  // returns array of strings
+    const bookmark_titles = await getAllBookmarkTitles();
 
-    // Quick access to commonly used pages
     const chrome_pages = [
       { label: "Settings", type: "chrome_settings", url: "chrome://settings/" },
       { label: "History", type: "chrome_history", url: "chrome://history/" },
@@ -775,18 +498,18 @@ window.addEventListener("message", async (event) => {
       { label: "Chrome Webstore", type: "chrome_webstore", url: "https://chromewebstore.google.com/" }
     ];
 
-
-    // Combine both lists into one
     const all_tabs = [...tabTitles, ...bookmark_titles, ...chrome_pages];
 
-    show_results(all_tabs)
+    show_results(all_tabs);
 
+    // Focus AFTER autocomplete is initialized
     if (input) {
       input.focus();
       input.select();
     }
   }
 });
+
 
 
 /**
@@ -803,11 +526,12 @@ function show_results(list) {
 
   // Destroy any old dropdowns to prevent duplicates
   document.querySelectorAll(".autoComplete_wrapper ul").forEach(el => el.remove());
+  var suggestion = ai_suggestion || cycle_suggestions();
 
   // Create the autocomplete instance
   const autoCompleteJS = new autoComplete({
     selector: "#search-input",
-    placeHolder: cycle_suggestions(),
+    placeHolder: suggestion,
     data: {
       src: list,
       keys: ["label"],

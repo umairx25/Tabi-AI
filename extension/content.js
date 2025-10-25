@@ -331,6 +331,90 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     
     return true; // Keep channel open
   }
+
+  if (msg.type === "WRITER_SUGGESTION") {
+  (async () => {
+    try {
+      if (typeof Writer === "undefined" || !Writer.create) {
+        console.warn("[Writer] Writer API not available");
+        sendResponse({ result: null });
+        return;
+      }
+
+      console.log("[Writer] Creating Writer session...");
+      const writer = await Writer.create({
+        sharedContext: "You generate short, creative suggestions for a browser tab management extension called Tabi."
+      });
+
+      const prompt = `
+Generate ONE random action phrase for "Ask Tabi to...". 
+
+Examples of what Tabi can do:
+- Search for specific tabs by content
+- Close tabs matching criteria (e.g., "close all YouTube tabs")
+- Organize tabs into groups by topic
+- Generate a curated list of tabs for a topic (e.g., "setup tabs for learning Python")
+
+Requirements:
+- Start with a verb (e.g., "organize", "close", "find", "create", "group")
+- Suggest things people would practically use it for
+- Max 6 words, no punctuation at the end
+- Return ONLY the phrase, nothing else
+
+Generate one phrase:`;
+
+      const result = await writer.write(prompt, { output_language: "en" });
+      console.log("[Writer] Result:", result);
+
+      sendResponse({ result: result || null });
+    } catch (err) {
+      console.error("[Writer] Error running Writer API:", err);
+      sendResponse({ result: null });
+    }
+  })();
+
+  return true; // keep channel open
+}
+
+
+if (msg.type === "WRITER_LOADING_MESSAGE") {
+  (async () => {
+    try {
+      if (typeof Writer === "undefined" || !Writer.create) {
+        console.warn("[Writer] API not available");
+        sendResponse({ result: null });
+        return;
+      }
+
+      const writer = await Writer.create({
+        sharedContext: "You write short, friendly loading messages for the Tabi tab assistant."
+      });
+
+      const promptText = `
+Write a short (3–6 words) loading message for a tab assistant action.
+
+Action: ${msg.action}
+User prompt: "${msg.prompt}"
+
+It should sound friendly and natural, e.g.:
+- "Sorting your tabs..."
+- "Cleaning up distractions..."
+- "Finding the perfect tab..."
+- "Getting things ready..."
+
+Return ONLY the message text.`;
+
+      const result = await writer.write(promptText, { output_language: "en" });
+      sendResponse({ result });
+    } catch (err) {
+      console.error("[Writer] Error generating loading message:", err);
+      sendResponse({ result: null });
+    }
+  })();
+  return true;
+}
+
+
   
   // For any other message types, don't handle them here
   return false;
