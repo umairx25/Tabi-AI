@@ -4,7 +4,6 @@ Injects the extension UI into the current webpage/DOM. Responsible for all
 script injection, including displaying and removing the overlay.
 */
 
-
 (() => {
   if (window.__tabi_content_injected__) return;
   window.__tabi_content_injected__ = true;
@@ -23,7 +22,7 @@ script injection, including displaying and removing the overlay.
       "left: 52%",
       "transform: translate(-50%, -50%)",
       "width: 600px",
-      "height: 400px", 
+      "height: 400px",
       "z-index: 2147483647",
       "display: flex",
       "align-items: stretch",
@@ -53,7 +52,7 @@ script injection, including displaying and removing the overlay.
       "overflow: hidden",
       "box-shadow: 0 12px 34px rgba(0,0,0,0.35)",
       "box-shadow: none",
-      "background: transparent"
+      "background: transparent",
     ].join(";");
 
     // Close button
@@ -64,7 +63,7 @@ script injection, including displaying and removing the overlay.
       "right: 6px",
       "z-index: 2",
       "display: flex",
-      "gap: 6px"
+      "gap: 6px",
     ].join(";");
 
     const closeBtn = document.createElement("button");
@@ -82,7 +81,7 @@ script injection, including displaying and removing the overlay.
       "border-radius: 10px",
       "border: 1px solid #3a3a3a",
       "box-shadow: 0 1px 2px rgba(0,0,0,0.25)",
-      "display: none"
+      "display: none",
     ].join(";");
     closeBtn.addEventListener("click", destroyOverlay);
 
@@ -93,7 +92,6 @@ script injection, including displaying and removing the overlay.
     const iframe = document.createElement("iframe");
     iframe.src = chrome.runtime.getURL("popup.html");
     iframe.title = "tabi";
-
     iframe.style.cssText = [
       "position: absolute",
       "inset: 0",
@@ -101,19 +99,17 @@ script injection, including displaying and removing the overlay.
       "height: 100%",
       "border: 0",
       "background: transparent",
-      "color-scheme: none",          // prevent dark reader theme injection
-      "allowtransparency: true",     // important for iframe bg
+      "color-scheme: none", // prevent dark reader theme injection
+      "allowtransparency: true",
     ].join(";");
 
     iframe.setAttribute("allowtransparency", "true");
     iframe.setAttribute("data-darkreader-ignore", "");
 
-
     wrapper.appendChild(iframe);
     iframe.onload = () => {
       iframe.contentWindow.postMessage({ type: "FOCUS_SEARCH" }, "*");
     };
-
 
     shadow.appendChild(wrapper);
 
@@ -126,10 +122,9 @@ script injection, including displaying and removing the overlay.
       "position: fixed",
       "inset: 0",
       "pointer-events: auto",
-      "background: transparent"
+      "background: transparent",
     ].join(";");
 
-    // Close overlay if click detected outside
     backdrop.addEventListener("mousedown", () => {
       destroyOverlay();
     });
@@ -172,106 +167,20 @@ script injection, including displaying and removing the overlay.
     }
   });
 
-
-// === LanguageModel bridge ===
-// let __lmSession = null;
-
-// chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-//   // Always return true immediately to keep the message port open
-//   if (msg.type !== "GET_INTENT") return;
-//   (async () => {
-//     try {
-//       // Ensure LanguageModel API exists
-//       if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
-//         console.warn("[LM] LanguageModel not available");
-//         sendResponse({ result: null });
-//         return;
-//       }
-
-//       // Reuse an existing session or create a new one
-//       if (!__lmSession) {
-//         console.log("[LM] Creating new LanguageModel session...");
-//         __lmSession = await LanguageModel.create();
-//       }
-
-//       const schema = {
-//         type: "string",
-//         enum: ["search_tabs", "generate_tabs", "organize_tabs", "close_tabs"],
-//       };
-
-//       const query = `
-//       Categorize the user's intent into one of: search_tabs, generate_tabs, organize_tabs, close_tabs.
-//       Return ONLY the label. Nothing else.
-//       User: "${msg.prompt}"
-//       `;
-
-//       const result = await __lmSession.prompt(query, { responseConstraint: schema });
-//       const intent = (result || "").trim();
-
-//       console.log("[LM] Model returned intent:", intent);
-//       sendResponse({ result: intent.length ? intent : null });
-//     } catch (err) {
-//       console.error("[LM] Error running model:", err);
-//       __lmSession = null;
-//       sendResponse({ result: null });
-//     }
-//   })();
-
-//   // Keep the channel open for async response
-//   return true;
-// });
-
-// chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-//   if (msg.type === "PROCESS_WITH_SCHEMA") {
-//     (async () => {
-//       try {
-//         if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
-//           console.warn("[LM] LanguageModel not available");
-//           sendResponse({ result: null });
-//           return;
-//         }
-
-//         if (!__lmSession) {
-//           console.log("[LM] Creating new LanguageModel session...");
-//           __lmSession = await LanguageModel.create();
-//         }
-
-//         const result = await __lmSession.prompt(msg.prompt, { 
-//           responseConstraint: msg.schema 
-//         });
-
-//         console.log("[LM] Model returned structured result:", result);
-//         sendResponse({ result: result || null });
-//       } catch (err) {
-//         console.error("[LM] Error running model:", err);
-//         __lmSession = null;
-//         sendResponse({ result: null });
-//       }
-//     })();
-    
-//     return true; // Keep channel open
-//   }
-  
-//   // ... rest of your existing handlers
-// });
-
-  // === LanguageModel bridge ===
+  // === LanguageModel and Writer bridge ===
   let __lmSession = null;
 
-  /** Handle messages that rely on the Chrome Prompt API session. */
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Handle GET_INTENT messages
     if (msg.type === "GET_INTENT") {
       (async () => {
         try {
-          // Ensure LanguageModel API exists
           if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
             console.warn("[LM] LanguageModel not available");
             sendResponse({ result: null });
             return;
           }
 
-          // Reuse an existing session or create a new one
           if (!__lmSession) {
             console.log("[LM] Creating new LanguageModel session...");
             __lmSession = await LanguageModel.create();
@@ -300,7 +209,7 @@ script injection, including displaying and removing the overlay.
         }
       })();
 
-      return true; // Keep the channel open for async response
+      return true;
     }
 
     // Handle PROCESS_WITH_SCHEMA messages
@@ -319,7 +228,7 @@ script injection, including displaying and removing the overlay.
           }
 
           const result = await __lmSession.prompt(msg.prompt, {
-            responseConstraint: msg.schema
+            responseConstraint: msg.schema,
           });
 
           console.log("[LM] Model returned structured result:", result);
@@ -331,36 +240,25 @@ script injection, including displaying and removing the overlay.
         }
       })();
 
-      return true; // Keep channel open
+      return true;
     }
 
-        console.log("[LM] Model returned structured result:", result);
-        sendResponse({ result: result || null });
-      } catch (err) {
-        console.error("[LM] Error running model:", err);
-        __lmSession = null;
-        sendResponse({ result: null });
-      }
-    })();
-    
-    return true; // Keep channel open
-  }
+    // Handle WRITER_SUGGESTION messages
+    if (msg.type === "WRITER_SUGGESTION") {
+      (async () => {
+        try {
+          if (typeof Writer === "undefined" || !Writer.create) {
+            console.warn("[Writer] Writer API not available");
+            sendResponse({ result: null });
+            return;
+          }
 
-  if (msg.type === "WRITER_SUGGESTION") {
-  (async () => {
-    try {
-      if (typeof Writer === "undefined" || !Writer.create) {
-        console.warn("[Writer] Writer API not available");
-        sendResponse({ result: null });
-        return;
-      }
+          console.log("[Writer] Creating Writer session...");
+          const writer = await Writer.create({
+            sharedContext: "You generate short, creative suggestions for a browser tab management extension called Tabi.",
+          });
 
-      console.log("[Writer] Creating Writer session...");
-      const writer = await Writer.create({
-        sharedContext: "You generate short, creative suggestions for a browser tab management extension called Tabi."
-      });
-
-      const prompt = `
+          const prompt = `
 Generate ONE random action phrase for "Ask Tabi to...". 
 
 Examples of what Tabi can do:
@@ -377,34 +275,33 @@ Requirements:
 
 Generate one phrase:`;
 
-      const result = await writer.write(prompt, { output_language: "en" });
-      console.log("[Writer] Result:", result);
+          const result = await writer.write(prompt, { output_language: "en" });
+          console.log("[Writer] Result:", result);
+          sendResponse({ result: result || null });
+        } catch (err) {
+          console.error("[Writer] Error running Writer API:", err);
+          sendResponse({ result: null });
+        }
+      })();
 
-      sendResponse({ result: result || null });
-    } catch (err) {
-      console.error("[Writer] Error running Writer API:", err);
-      sendResponse({ result: null });
+      return true;
     }
-  })();
 
-  return true; // keep channel open
-}
+    // Handle WRITER_LOADING_MESSAGE messages
+    if (msg.type === "WRITER_LOADING_MESSAGE") {
+      (async () => {
+        try {
+          if (typeof Writer === "undefined" || !Writer.create) {
+            console.warn("[Writer] API not available");
+            sendResponse({ result: null });
+            return;
+          }
 
+          const writer = await Writer.create({
+            sharedContext: "You write short, friendly loading messages for the Tabi tab assistant.",
+          });
 
-if (msg.type === "WRITER_LOADING_MESSAGE") {
-  (async () => {
-    try {
-      if (typeof Writer === "undefined" || !Writer.create) {
-        console.warn("[Writer] API not available");
-        sendResponse({ result: null });
-        return;
-      }
-
-      const writer = await Writer.create({
-        sharedContext: "You write short, friendly loading messages for the Tabi tab assistant."
-      });
-
-      const promptText = `
+          const promptText = `
 Write a short (3–6 words) loading message for a tab assistant action.
 
 Action: ${msg.action}
@@ -418,23 +315,21 @@ It should sound friendly and natural, e.g.:
 
 Return ONLY the message text.`;
 
-      const result = await writer.write(promptText, { output_language: "en" });
-      sendResponse({ result });
-    } catch (err) {
-      console.error("[Writer] Error generating loading message:", err);
-      sendResponse({ result: null });
+          const result = await writer.write(promptText, { output_language: "en" });
+          sendResponse({ result });
+        } catch (err) {
+          console.error("[Writer] Error generating loading message:", err);
+          sendResponse({ result: null });
+        }
+      })();
+
+      return true;
     }
-  })();
-  return true;
-}
 
+    // Fallback: not handled
+    return false;
+  });
 
-  
-  // For any other message types, don't handle them here
-  return false;
-});
-
-
-
+  // Expose toggle function globally
   window.__tabi_toggle__ = toggleOverlay;
 })();
