@@ -34,9 +34,10 @@ agent = Agent[None, Result](
 
 
 async def run_agent(prompt: str, tabs: list[dict]):
+    """Run the Gemini-powered agent with the given prompt and tab context."""
     try:
         result = await agent.run(f"Tabs: {tabs}\nUser: {prompt}")
-    
+
     except Exception as e:
         print("error: ", e)
     

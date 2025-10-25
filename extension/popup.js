@@ -396,6 +396,9 @@ document.addEventListener("DOMContentLoaded", async() => {
 });
 
 
+/**
+ * Ensure we have a stable per-install client identifier stored locally.
+ */
 async function getClientId() {
   const { client_id } = await chrome.storage.local.get("client_id");
 
