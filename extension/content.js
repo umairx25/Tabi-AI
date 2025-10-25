@@ -171,5 +171,172 @@ script injection, including displaying and removing the overlay.
     }
   });
 
+
+// === LanguageModel bridge ===
+// let __lmSession = null;
+
+// chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+//   // Always return true immediately to keep the message port open
+//   if (msg.type !== "GET_INTENT") return;
+//   (async () => {
+//     try {
+//       // Ensure LanguageModel API exists
+//       if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
+//         console.warn("[LM] LanguageModel not available");
+//         sendResponse({ result: null });
+//         return;
+//       }
+
+//       // Reuse an existing session or create a new one
+//       if (!__lmSession) {
+//         console.log("[LM] Creating new LanguageModel session...");
+//         __lmSession = await LanguageModel.create();
+//       }
+
+//       const schema = {
+//         type: "string",
+//         enum: ["search_tabs", "generate_tabs", "organize_tabs", "close_tabs"],
+//       };
+
+//       const query = `
+//       Categorize the user's intent into one of: search_tabs, generate_tabs, organize_tabs, close_tabs.
+//       Return ONLY the label. Nothing else.
+//       User: "${msg.prompt}"
+//       `;
+
+//       const result = await __lmSession.prompt(query, { responseConstraint: schema });
+//       const intent = (result || "").trim();
+
+//       console.log("[LM] Model returned intent:", intent);
+//       sendResponse({ result: intent.length ? intent : null });
+//     } catch (err) {
+//       console.error("[LM] Error running model:", err);
+//       __lmSession = null;
+//       sendResponse({ result: null });
+//     }
+//   })();
+
+//   // Keep the channel open for async response
+//   return true;
+// });
+
+// chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+//   if (msg.type === "PROCESS_WITH_SCHEMA") {
+//     (async () => {
+//       try {
+//         if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
+//           console.warn("[LM] LanguageModel not available");
+//           sendResponse({ result: null });
+//           return;
+//         }
+
+//         if (!__lmSession) {
+//           console.log("[LM] Creating new LanguageModel session...");
+//           __lmSession = await LanguageModel.create();
+//         }
+
+//         const result = await __lmSession.prompt(msg.prompt, { 
+//           responseConstraint: msg.schema 
+//         });
+
+//         console.log("[LM] Model returned structured result:", result);
+//         sendResponse({ result: result || null });
+//       } catch (err) {
+//         console.error("[LM] Error running model:", err);
+//         __lmSession = null;
+//         sendResponse({ result: null });
+//       }
+//     })();
+    
+//     return true; // Keep channel open
+//   }
+  
+//   // ... rest of your existing handlers
+// });
+
+// === LanguageModel bridge ===
+let __lmSession = null;
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  // Handle GET_INTENT messages
+  if (msg.type === "GET_INTENT") {
+    (async () => {
+      try {
+        // Ensure LanguageModel API exists
+        if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
+          console.warn("[LM] LanguageModel not available");
+          sendResponse({ result: null });
+          return;
+        }
+
+        // Reuse an existing session or create a new one
+        if (!__lmSession) {
+          console.log("[LM] Creating new LanguageModel session...");
+          __lmSession = await LanguageModel.create();
+        }
+
+        const schema = {
+          type: "string",
+          enum: ["search_tabs", "generate_tabs", "organize_tabs", "close_tabs"],
+        };
+
+        const query = `
+        Categorize the user's intent into one of: search_tabs, generate_tabs, organize_tabs, close_tabs.
+        Return ONLY the label. Nothing else.
+        User: "${msg.prompt}"
+        `;
+
+        const result = await __lmSession.prompt(query, { responseConstraint: schema });
+        const intent = (result || "").trim();
+
+        console.log("[LM] Model returned intent:", intent);
+        sendResponse({ result: intent.length ? intent : null });
+      } catch (err) {
+        console.error("[LM] Error running model:", err);
+        __lmSession = null;
+        sendResponse({ result: null });
+      }
+    })();
+    
+    return true; // Keep the channel open for async response
+  }
+  
+  // Handle PROCESS_WITH_SCHEMA messages
+  if (msg.type === "PROCESS_WITH_SCHEMA") {
+    (async () => {
+      try {
+        if (typeof LanguageModel === "undefined" || !LanguageModel.create) {
+          console.warn("[LM] LanguageModel not available");
+          sendResponse({ result: null });
+          return;
+        }
+
+        if (!__lmSession) {
+          console.log("[LM] Creating new LanguageModel session...");
+          __lmSession = await LanguageModel.create();
+        }
+
+        const result = await __lmSession.prompt(msg.prompt, { 
+          responseConstraint: msg.schema 
+        });
+
+        console.log("[LM] Model returned structured result:", result);
+        sendResponse({ result: result || null });
+      } catch (err) {
+        console.error("[LM] Error running model:", err);
+        __lmSession = null;
+        sendResponse({ result: null });
+      }
+    })();
+    
+    return true; // Keep channel open
+  }
+  
+  // For any other message types, don't handle them here
+  return false;
+});
+
+
+
   window.__tabi_toggle__ = toggleOverlay;
 })();
