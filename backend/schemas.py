@@ -15,7 +15,7 @@ class Tab(BaseModel):
     description: str = Field(..., description="The tab's description")
 
 class TabList(BaseModel):
-    "A list of tabs"
+    """A list of tabs that belong together without grouping metadata."""
     tabs: List[Tab] = Field(..., description="A list of tabs")
 
 class TabGroup(BaseModel):
@@ -24,7 +24,7 @@ class TabGroup(BaseModel):
     tabs: List[Tab] = Field(..., description="A list of tabs in this group")
 
 class TabGroupList(BaseModel):
-    "A list of tab groups"
+    """A list of tab groups"""
     tabs: List[TabGroup] = Field(..., description="A list of tab groups")
 
 # Define all possible output types

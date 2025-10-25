@@ -12,6 +12,9 @@ let search_suggestion;
 
 let session = null;
 
+/**
+ * Request the Chrome Prompt API to classify the user's intent locally.
+ */
 async function getIntent(prompt) {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -39,6 +42,9 @@ async function getIntent(prompt) {
 }
 
 
+/**
+ * Run the local Prompt API with structured schema to satisfy the user's intent.
+ */
 async function executeIntent(intent, prompt, groupedTabs) {
   try {
 
@@ -673,6 +679,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
+/**
+ * Ensure we have a stable per-install client identifier stored locally.
+ */
 async function getClientId() {
   const { client_id } = await chrome.storage.local.get("client_id");
 
