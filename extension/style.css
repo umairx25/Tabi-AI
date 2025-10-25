@@ -2,17 +2,17 @@
 Main css file containing styling elements for the search bar
 */
 
-/* Search bar styling (from Uiverse.io by DipeshPun91) */ 
+/* Search bar styling (from Uiverse.io by DipeshPun91) */
 
 .navbar-container {
-  flex-direction: column; 
+  flex-direction: column;
   display: flex;
   justify-content: center;
   padding: 1rem;
   position: relative;
 }
 
-/* Additional formatting of the container holding the loading bar*/ 
+/* Additional formatting of the container holding the loading bar*/
 #results {
   width: 96%;
   max-width: 1000px;
@@ -26,7 +26,7 @@ Main css file containing styling elements for the search bar
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Expand or collapse the loading bar */ 
+/* Expand or collapse the loading bar */
 @keyframes expandDown {
   from {
     opacity: 0;
@@ -34,6 +34,7 @@ Main css file containing styling elements for the search bar
     padding-top: 0;
     padding-bottom: 0;
   }
+
   to {
     opacity: 1;
     max-height: 200px;
@@ -42,9 +43,10 @@ Main css file containing styling elements for the search bar
   }
 }
 
-/* Continuation of search bar styling */ 
+/* Continuation of search bar styling */
 
-html, body {
+html,
+body {
   background: transparent !important;
   overflow: hidden;
 }
@@ -82,6 +84,26 @@ html, body {
   gap: 0.75rem;
   min-width: 0;
   padding-right: 180px;
+  position: relative;
+}
+
+
+.input-suggestion {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: rgba(203, 213, 225, 0.35);
+  font-size: 1rem;
+  font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0.6rem 0;
+  width: calc(100% - 180px);
+  z-index: 0;
+  visibility: hidden;
 }
 
 .icon-group {
@@ -104,6 +126,8 @@ html, body {
   background: transparent;
   color: #f0f0f0;
   padding: 0.6rem 0;
+  position: relative;
+  z-index: 1;
 }
 
 
@@ -164,20 +188,20 @@ html, body {
 }
 
 .search-icon {
-  font-size: 18px;     
-  color: #00ff99;          
+  font-size: 18px;
+  color: #00ff99;
   background: #1a1b23;
-  padding: 0;              
-  margin: 0;               
-  border: none;           
+  padding: 0;
+  margin: 0;
+  border: none;
   line-height: 1;
 }
 
-.search-mode-btn{
+.search-mode-btn {
   background: #1a1b23;
-  padding: 0;              
-  margin: 0;               
-  border: none;           
+  padding: 0;
+  margin: 0;
+  border: none;
   line-height: 1;
   margin-left: 2%;
   margin-right: 2%;
@@ -217,13 +241,16 @@ html, body {
 
 .ears {
   position: absolute;
-  top: -5px;   /* push ears above the bar */
-  right: 35px;  /* align them to the right edge */
-  pointer-events: none; /* don't block interaction */
+  top: -5px;
+  /* push ears above the bar */
+  right: 35px;
+  /* align them to the right edge */
+  pointer-events: none;
+  /* don't block interaction */
 }
 
 .ears img {
-  width: 50px;   
+  width: 50px;
   height: auto;
   display: block;
 }
@@ -239,7 +266,7 @@ html, body {
   min-width: 0;
 }
 
-.autoComplete_wrapper > ul {
+.autoComplete_wrapper>ul {
   z-index: 9999;
   top: calc(100% + 12px);
   left: 50%;
@@ -256,7 +283,7 @@ html, body {
 }
 
 
-.autoComplete_wrapper > ul > li {
+.autoComplete_wrapper>ul>li {
   color: #f8fafc;
   font-size: 0.95rem;
   font-weight: 500;
@@ -265,26 +292,26 @@ html, body {
   cursor: pointer;
   display: flex;
   white-space: nowrap;
-  text-overflow: ellipsis; 
+  text-overflow: ellipsis;
   padding: 16px 22px;
   align-items: center;
   justify-content: space-between;
   transition: background 0.1s ease, color 0.1s ease, transform 0.1s ease;
 }
 
-.autoComplete_wrapper > ul > li:hover,
-.autoComplete_wrapper > ul > li[aria-selected="true"] {
+.autoComplete_wrapper>ul>li:hover,
+.autoComplete_wrapper>ul>li[aria-selected="true"] {
   background: rgba(0, 255, 153, 0.08);
   color: #00ff99;
   transform: scale(1.01);
 }
 
-.autoComplete_wrapper > ul > li:last-child {
+.autoComplete_wrapper>ul>li:last-child {
   border-bottom: none;
 }
 
 /* Small keyboard hint on the right side */
-.autoComplete_wrapper > ul > li::after {
+.autoComplete_wrapper>ul>li::after {
   content: "";
   opacity: 0.15;
   font-size: 0.9rem;
@@ -296,6 +323,7 @@ html, body {
     opacity: 0;
     transform: translate(-50%, -8px);
   }
+
   to {
     opacity: 1;
     transform: translate(-50%, 0);
@@ -316,23 +344,18 @@ ul[id^="autoComplete_list_"] {
 /* Formatting of the Ask Tabi hint */
 .enter-hint {
   position: fixed;
-  right: 3.2rem;      
+  right: 3.2rem;
   top: 13%;
   transform: translateY(-50%);
   font-size: 0.85rem;
   color: #8a8a8a;
   opacity: 0.6;
-  pointer-events: none; 
+  pointer-events: none;
   transition: opacity 0.25s ease;
 }
 
 
-.input:focus ~ .enter-hint,
-.input:not(:placeholder-shown) ~ .enter-hint {
+.input:focus~.enter-hint,
+.input:not(:placeholder-shown)~.enter-hint {
   opacity: 0.1;
 }
-
-
-
-
-
