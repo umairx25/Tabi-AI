@@ -4,14 +4,112 @@ Handles the main javascript functions, including communicating with the backend 
 and carrying out in-browser actions (like modifying/creating/switching tabs).
 */
 
-import { getIntent, executeIntent, generateAISuggestion, generateLoadingMessage } from "./gemini-nano.js";
+import { getIntent, executeIntent, generateAISuggestion, generateLoadingMessage, generateQueryAutocomplete } from "./gemini-nano.js";
 
 const input = document.getElementById("search-input");
 const results = document.getElementById("results");
 const BACKEND_URL = "http://127.0.0.1:8010";
 
-let search_suggestion;
 let ai_suggestion;
+const suggestionOverlay = document.getElementById("autocomplete-suggestion");
+let autocompleteFullText = "";
+let autocompleteTimer = null;
+let autocompleteRequestId = 0;
+
+function clearAutocompleteSuggestion() {
+  autocompleteFullText = "";
+  if (suggestionOverlay) {
+    suggestionOverlay.textContent = "";
+    suggestionOverlay.style.visibility = "hidden";
+  }
+
+  if (autocompleteTimer) {
+    clearTimeout(autocompleteTimer);
+    autocompleteTimer = null;
+  }
+}
+
+function renderAutocompleteSuggestion(fullText, userValue) {
+  if (!suggestionOverlay) return;
+
+  if (!fullText || fullText.length <= userValue.length) {
+    clearAutocompleteSuggestion();
+    return;
+  }
+
+  suggestionOverlay.textContent = fullText;
+  suggestionOverlay.style.visibility = "visible";
+  autocompleteFullText = fullText;
+}
+
+function isCursorAtEnd() {
+  if (!input) return false;
+  return (
+    input.selectionStart === input.value.length &&
+    input.selectionEnd === input.value.length
+  );
+}
+
+async function requestAutocompleteSuggestion(value, requestId) {
+  const trimmed = value.trim();
+
+  if (!trimmed || trimmed.length < 3) {
+    clearAutocompleteSuggestion();
+    return;
+  }
+
+  const completion = await generateQueryAutocomplete(trimmed);
+
+  if (autocompleteRequestId !== requestId) {
+    return;
+  }
+
+  if (!completion || typeof completion !== "string") {
+    clearAutocompleteSuggestion();
+    return;
+  }
+
+  const cleaned = completion.trim();
+
+  if (!cleaned) {
+    clearAutocompleteSuggestion();
+    return;
+  }
+
+  let fullText;
+  if (cleaned.toLowerCase().startsWith(trimmed.toLowerCase())) {
+    const suffix = cleaned.slice(trimmed.length);
+    fullText = value + suffix;
+  } else {
+    const joiner = value.endsWith(" ") || value.length === 0 ? "" : " ";
+    fullText = value + joiner + cleaned;
+  }
+
+  if (!fullText || fullText.length <= value.length) {
+    clearAutocompleteSuggestion();
+    return;
+  }
+
+  renderAutocompleteSuggestion(fullText, value);
+}
+
+function scheduleAutocomplete() {
+  if (!input) return;
+
+  if (autocompleteTimer) {
+    clearTimeout(autocompleteTimer);
+  }
+
+  const currentValue = input.value;
+  autocompleteRequestId += 1;
+  const requestId = autocompleteRequestId;
+
+  autocompleteTimer = setTimeout(() => {
+    requestAutocompleteSuggestion(currentValue, requestId);
+    autocompleteTimer = null;
+  }, 350);
+}
+
 
 (async () => {
   ai_suggestion = await generateAISuggestion();
@@ -60,10 +158,12 @@ function setStatus(message, isLoading = false, isError = false) {
  * execute corresponding function.
  */
 async function execute_cmd() {
+  clearAutocompleteSuggestion();
+
   const userPrompt = input.value.trim();
 
   if (!userPrompt) return;
-  
+
   const intent = await getIntent(userPrompt);
   console.log("intentLlm:", intent);
 
@@ -372,12 +472,46 @@ function cycle_suggestions() {
 // === Pressing enter triggers the backend ===
 if (input) {
   input.addEventListener("keydown", e => {
-    if (e.key === "Enter") execute_cmd();
+    if ((e.key === "Tab" || e.key === "ArrowRight") && autocompleteFullText && isCursorAtEnd()) {
+      e.preventDefault();
+      input.value = autocompleteFullText;
+      clearAutocompleteSuggestion();
+      return;
+    }
+
+    if (e.key === "Enter") {
+      if (autocompleteFullText && isCursorAtEnd()) {
+        input.value = autocompleteFullText;
+        clearAutocompleteSuggestion();
+      }
+      execute_cmd();
+    }
+
+    if (e.key === "Escape") {
+      clearAutocompleteSuggestion();
+    }
+  });
+
+  input.addEventListener("input", () => {
+    if (!input.value.trim()) {
+      clearAutocompleteSuggestion();
+    }
+    scheduleAutocomplete();
+  });
+
+  input.addEventListener("blur", () => {
+    clearAutocompleteSuggestion();
+  });
+
+  input.addEventListener("focus", () => {
+    if (input.value.trim()) {
+      scheduleAutocomplete();
+    }
   });
 }
 
 
-document.addEventListener("DOMContentLoaded", async() => {
+document.addEventListener("DOMContentLoaded", async () => {
   if (!input) return;
 
   // Wait for the cached suggestion (in case it's still loading)
