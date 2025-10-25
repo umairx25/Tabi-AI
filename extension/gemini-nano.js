@@ -192,9 +192,9 @@ export async function executeIntent(intent, prompt, groupedTabs) {
         - confidence: a number between 0 and 1
 
         Return ONLY valid JSON. No additional text.`.trim();
-            }
-            else if (intent === "close_tabs") {
-            query = `
+    }
+    else if (intent === "close_tabs") {
+      query = `
         You are a tab cleanup assistant. Identify which tabs should be closed based on the user's request.
 
         User request: "${prompt}"
@@ -313,6 +313,39 @@ export async function generateAISuggestion() {
   }
 }
 
+export async function generateQueryAutocomplete(prefix) {
+  try {
+    if (!prefix || !prefix.trim()) {
+      return null;
+    }
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    return await new Promise((resolve) => {
+      chrome.tabs.sendMessage(
+        tab.id,
+        { type: "WRITER_AUTOCOMPLETE", prefix },
+        (resp) => {
+          if (chrome.runtime.lastError) {
+            console.error("[Writer] Autocomplete runtime error:", chrome.runtime.lastError.message);
+            resolve(null);
+            return;
+          }
+
+          if (!resp || typeof resp.result !== "string") {
+            resolve(null);
+            return;
+          }
+
+          resolve(resp.result.trim() || null);
+        }
+      );
+    });
+  } catch (err) {
+    console.error("[Writer] Error generating autocomplete:", err);
+    return null;
+  }
+}
 
 export async function generateLoadingMessage(prompt, action) {
   try {
