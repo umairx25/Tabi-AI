@@ -175,20 +175,6 @@ User Command
         [Extension executes action]
 ```
 
-### Processing Stages
-
-1. **Input Enhancement** – Writer API generates session-specific placeholder text and provides real-time autocomplete suggestions
-2. **Intent Classification** – Prompt API analyzes query and returns structured intent with confidence score
-3. **Routing Decision** – System routes to local (Prompt API) or cloud (backend) based on confidence threshold (0.8)
-4. **Context Collection** – Extension gathers relevant tabs and bookmarks from Chrome APIs
-5. **Local Execution** – Prompt API processes query with schema constraints, returns structured actions (70-80% of queries)
-6. **Cloud Execution** – Backend handles generation tasks and low-confidence queries (20-30% of queries)
-7. **Action Execution** – Validated responses are executed directly via Chrome APIs (tabs, bookmarks, tab groups)
-8. **Status Feedback** – Writer API generates contextual loading messages based on action type
-
-
-
-
 ---
 
 ## 💬 Example Commands
