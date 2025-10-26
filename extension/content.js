@@ -188,11 +188,13 @@ script injection, including displaying and removing the overlay.
 
           const schema = {
             type: "string",
-            enum: ["search_tabs", "generate_tabs", "organize_tabs", "close_tabs"],
+            enum: ["search_tabs", "generate_tabs", "organize_tabs", "close_tabs", "remove_bookmarks", "search_bookmarks", "organize_bookmarks"],
           };
 
           const query = `
-          Categorize the user's intent into one of: search_tabs, generate_tabs, organize_tabs, close_tabs.
+          Categorize the user's intent into one of: search_tabs, generate_tabs, organize_tabs, close_tabs, 
+          remove_bookmarks, search_bookmarks, organize_bookmarks. If anything regarding bookmarks is mentioned, categorize it under one of the bookmarks category.
+          For a vague request i.e (help me do x or y) return generate_tabs
           Return ONLY the label. Nothing else.
           User: "${msg.prompt}"
           `;
@@ -266,6 +268,9 @@ Examples of what Tabi can do:
 - Close tabs matching criteria (e.g., "close all YouTube tabs")
 - Organize tabs into groups by topic
 - Generate a curated list of tabs for a topic (e.g., "setup tabs for learning Python")
+- Find you a bookmark from your bookmarks
+- Close bookmarks that you specify
+- Organize your bookmarks, can even organize your open tabs into bookmarks
 
 Requirements:
 - Start with a verb (e.g., "organize", "close", "find", "create", "group")

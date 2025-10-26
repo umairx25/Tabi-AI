@@ -36,7 +36,7 @@ async def agent_route(req: PromptRequest):
     print(req.prompt)
     print(req.context)
     try:
-        result = await run_agent(req.prompt, (req.context["tabs"]))
+        result = await run_agent(req.prompt, (req.context["tabs"]), (req.context["bookmarks"]))
         print("Result in app: ", result)
 
         return JSONResponse(content={
