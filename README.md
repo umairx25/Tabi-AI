@@ -95,7 +95,7 @@ Tabi uses an **intelligent routing system** that optimizes for speed, privacy, a
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/<your-repo>/tabi.git
+   git clone https://github.com/umairx25/Tabi-AI
    cd tabi/backend
    ```
 
