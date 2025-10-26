@@ -287,6 +287,46 @@ Generate one phrase:`;
       return true;
     }
 
+    // Handle WRITER_AUTOCOMPLETE messages
+    if (msg.type === "WRITER_AUTOCOMPLETE") {
+      (async () => {
+        try {
+          if (typeof Writer === "undefined" || !Writer.create) {
+            console.warn("[Writer] Autocomplete API not available");
+            sendResponse({ result: null });
+            return;
+          }
+
+          const writer = await Writer.create({
+            sharedContext: "You extend partial Tabi commands to make them more specific.",
+          });
+
+          const promptText = `
+Continue the following partial command for the Tabi tab assistant.
+
+Existing text: "${msg.prefix}"
+
+Add 1-6 additional words that make the request specific and useful.
+Rules:
+- Return only the continuation text that should be appended.
+- Do not repeat the existing text.
+- Do not add punctuation at the end.
+- If the input already looks complete or is too short, return nothing.
+`;
+
+          const result = await writer.write(promptText, { output_language: "en" });
+          const completion = (result || "").trim();
+          sendResponse({ result: completion });
+        } catch (err) {
+          console.error("[Writer] Error generating autocomplete completion:", err);
+          sendResponse({ result: null });
+        }
+      })();
+
+      return true;
+    }
+
+
     // Handle WRITER_LOADING_MESSAGE messages
     if (msg.type === "WRITER_LOADING_MESSAGE") {
       (async () => {
