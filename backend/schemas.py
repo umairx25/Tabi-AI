@@ -5,7 +5,7 @@
 # """
 
 from pydantic import BaseModel, Field
-from typing import List, Union
+from typing import List, Union, Optional
 
 
 class Tab(BaseModel):
@@ -26,6 +26,15 @@ class TabGroup(BaseModel):
 class TabGroupList(BaseModel):
     """A list of tab groups"""
     tabs: List[TabGroup] = Field(..., description="A list of tab groups")
+
+
+class Bookmark(BaseModel):
+    id: str = Field(..., description="The bookmark's unique Chrome ID")
+    title: str
+    url: Optional[str] = None
+
+class BookmarkTree(BaseModel):
+    bookmarks: List[Bookmark] = Field(..., description="Flat list of all bookmarks")
 
 # Define all possible output types
 class SearchResult(BaseModel):
@@ -48,5 +57,53 @@ class GenerateResult(BaseModel):
     output: TabGroup  # Organized groups
     confidence: float
 
-# Union = "one of these types"
-Result = Union[SearchResult, CloseResult, OrganizeResult, GenerateResult]
+# Bookmark results
+
+class RemoveBookmarkResult(BaseModel):
+    action: str = Field(default="remove_bookmarks")
+    output: BookmarkTree
+    confidence: float
+
+class SearchBookmarkResult(BaseModel):
+    action: str = Field(default="search_bookmarks")
+    output: BookmarkTree
+    confidence: float
+
+class BookmarkMove(BaseModel):
+    id: str = Field(..., description="The bookmark's unique Chrome ID")
+    move_to_folder: str = Field(..., description="The title of the folder to move this bookmark into")
+
+
+class TabToAdd(BaseModel):
+    tab_title: str = Field(..., description="Title of the tab to add as a bookmark")
+    tab_url: str = Field(..., description="URL of the tab to add as a bookmark")
+    folder_title: str = Field(..., description="Target folder title where this tab should be bookmarked")
+
+
+class OrganizeBookmarkOutput(BaseModel):
+    reorganized_bookmarks: List[BookmarkMove] = Field(
+        default_factory=list,
+        description="List of existing bookmarks to move into specific folders"
+    )
+    tabs_to_add: List[TabToAdd] = Field(
+        default_factory=list,
+        description="Tabs that should be added as bookmarks under specific folders"
+    )
+
+
+class OrganizeBookmarkResult(BaseModel):
+    action: str = Field(default="organize_bookmarks", description="The action type")
+    output: OrganizeBookmarkOutput = Field(..., description="The reorganization plan and any tabs to add")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Model confidence score between 0 and 1")
+
+
+# Unified type union (for structured LLM outputs)
+Result = Union[
+    SearchResult,
+    CloseResult,
+    OrganizeResult,
+    GenerateResult,
+    RemoveBookmarkResult,
+    SearchBookmarkResult,
+    OrganizeBookmarkResult,
+]

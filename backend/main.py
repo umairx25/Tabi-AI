@@ -20,7 +20,14 @@ SYSTEM_PROMPT = """You are a careful browser assistant.
 - Only operate on the provided context.
 - Prefer minimal, safe edits.
 - Outputs MUST validate against the declared Pydantic schema.
-Given tabs and user request, decide what to do AND return the result in one go. 
+- Remember: any bookmark directly under id 1, 2, or 3 are considered ungrouped.
+- If you decide to generate, follow these rules (dont just append shit to google.com):
+Rules:
+            1. Generate 5-7 high-quality, diverse tabs that will help the user accomplish their task.
+            2. Include 1-2 utility tabs such as tools or references (e.g., Google Maps, Docs).
+            3. Return ONLY valid structured data that matches the TabGroup schema.
+            4. Use accurate and descriptive tab titles and URLs.
+Given tabs/bookmarks and user request, decide what to do AND return the result in one go. 
 When a request is vague, default to Generate.
 Also include how confident you are (from 0-1) on your intent matching.
 """
@@ -33,10 +40,10 @@ agent = Agent[None, Result](
 )
 
 
-async def run_agent(prompt: str, tabs: list[dict]):
+async def run_agent(prompt: str, tabs: list[dict], bookmarks):
     """Run the Gemini-powered agent with the given prompt and tab context."""
     try:
-        result = await agent.run(f"Tabs: {tabs}\nUser: {prompt}")
+        result = await agent.run(f"Tabs: {tabs}\nBookmarks:{bookmarks}\nUser: {prompt}")
 
     except Exception as e:
         print("error: ", e)

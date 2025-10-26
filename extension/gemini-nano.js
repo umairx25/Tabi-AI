@@ -16,7 +16,6 @@ export async function getIntent(prompt) {
           resolve(null);
           return;
         }
-        // console.log("Intent from local model:", resp.result);
         resolve(resp.result);
       });
     });
@@ -27,7 +26,7 @@ export async function getIntent(prompt) {
 }
 
 
-export async function executeIntent(intent, prompt, groupedTabs) {
+export async function executeIntent(intent, prompt, groupedTabs, bookmark_tree, bookmark_titles) {
   try {
 
     if (intent.startsWith('"') && intent.endsWith('"')) {
@@ -149,7 +148,101 @@ export async function executeIntent(intent, prompt, groupedTabs) {
           confidence: { type: "number", minimum: 0, maximum: 1 }
         },
         required: ["action", "output", "confidence"]
-      }
+      },
+
+      // === NEW BOOKMARK SCHEMAS ===
+      "remove_bookmarks": {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["remove_bookmarks"] },
+          output: {
+            type: "object",
+            properties: {
+              bookmarks: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    title: { type: "string" },
+                    url: { type: "string" }
+                  },
+                  required: ["id", "title"]
+                }
+              }
+            },
+            required: ["bookmarks"]
+          },
+          confidence: { type: "number", minimum: 0, maximum: 1 }
+        },
+        required: ["action", "output", "confidence"]
+      },
+
+      "search_bookmarks": {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["search_bookmarks"] },
+          output: {
+            type: "object",
+            properties: {
+              bookmarks: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    title: { type: "string" },
+                    url: { type: "string" }
+                  },
+                  required: ["id", "title"]
+                }
+              }
+            },
+            required: ["bookmarks"]
+          },
+          confidence: { type: "number", minimum: 0, maximum: 1 }
+        },
+        required: ["action", "output", "confidence"]
+      },
+
+    "organize_bookmarks": {
+  type: "object",
+  properties: {
+    action: { type: "string", enum: ["organize_bookmarks"] },
+    output: {
+      type: "object",
+      properties: {
+        reorganized_bookmarks: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              move_to_folder: { type: "string" }
+            },
+            required: ["id", "move_to_folder"]
+          }
+        },
+        tabs_to_add: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              tab_title: { type: "string" },
+              tab_url: { type: "string" },
+              folder_title: { type: "string" }
+            },
+            required: ["tab_title", "tab_url", "folder_title"]
+          }
+        }
+      },
+      required: ["reorganized_bookmarks"]
+    },
+    confidence: { type: "number", minimum: 0, maximum: 1 }
+  },
+  required: ["action", "output", "confidence"]
+}
+
     };
 
     // Get the appropriate schema based on intent
@@ -177,67 +270,163 @@ export async function executeIntent(intent, prompt, groupedTabs) {
     // Create the query for the model based on intent
     let query = "";
 
-    if (intent === "search_tabs") {
-      query = `
-        You are a tab search assistant. Find the tab that best matches the user's request.
+    const tabsText = allTabs.map(
+                    (t, i) => `${i + 1}. [${t.group}] "${t.title}" - ${t.url}`
+                    ).join("\n");
+    
+    bookmark_tree = JSON.stringify(bookmark_tree, null, 2);
 
-        User request: "${prompt}"
 
-        Available tabs:
-        ${tabsInfo}
 
-        Return a JSON response with:
-        - action: "search_tabs"
-        - output: { title: "exact tab title", url: "exact tab url", description: "why this tab matches" }
-        - confidence: a number between 0 and 1
+switch (intent) {
+  // === TAB INTENTS ===
+  case "search_tabs":
+    query = `
+      You are a tab search assistant. Find the tab that best matches the user's request.
 
-        Return ONLY valid JSON. No additional text.`.trim();
-    }
-    else if (intent === "close_tabs") {
-      query = `
-        You are a tab cleanup assistant. Identify which tabs should be closed based on the user's request.
+      User request: "${prompt}"
 
-        User request: "${prompt}"
+      Available tabs:
+      ${tabsText}
 
-        Available tabs:
-        ${tabsInfo}
+      Return a JSON response with:
+      - action: "search_tabs"
+      - output: { title: "exact tab title", url: "exact tab url", description: "why this tab matches" }
+      - confidence: a number between 0 and 1
 
-        Return a JSON response with:
-        - action: "close_tabs"
-        - output: { tabs: [{ title: "exact title", url: "exact url", description: "reason" }, ...] }
-        - confidence: a number between 0 and 1
+      Return ONLY valid JSON. No additional text.
+    `.trim();
+    console.log("Search tabs reached, and LLM returned: ", query);
+    break;
 
-        Return ONLY valid JSON. No additional text.`.trim();
-    }
-    else if (intent === "organize_tabs") {
-      query = `
-            You are a tab organization assistant. Group the tabs into logical categories.
+  case "close_tabs":
+    query = `
+      You are a tab cleanup assistant. Identify which tabs should be closed based on the user's request.
 
-            User request: "${prompt}"
+      User request: "${prompt}"
 
-            Available tabs:
-            ${tabsInfo}
+      Available tabs:
+      ${tabsInfo}
 
-            Return a JSON response with:
-            - action: "organize_tabs"
-            - output: { tabs: [{ group_name: "category", tabs: [{ title, url, description }, ...] }, ...] }
-            - confidence: a number between 0 and 1
+      Return a JSON response with:
+      - action: "close_tabs"
+      - output: { tabs: [{ title: "exact title", url: "exact url", description: "reason" }, ...] }
+      - confidence: a number between 0 and 1
 
-            Return ONLY valid JSON. No additional text.`.trim();
-    }
-    else if (intent === "generate_tabs") {
-      query = `
-                You are a tab generation assistant. Create a list of useful tabs/URLs based on the user's request.
+      Return ONLY valid JSON. No additional text.
+    `.trim();
+    break;
 
-                User request: "${prompt}"
+  case "organize_tabs":
+    query = `
+      You are a tab organization assistant. Group the tabs into logical categories.
 
-                Return a JSON response with:
-                - action: "generate_tabs"
-                - output: { group_name: "descriptive name", tabs: [{ title: "page title", url: "full url", description: "what it's for" }, ...] }
-                - confidence: a number between 0 and 1
+      User request: "${prompt}"
 
-                Generate 5-10 relevant, high-quality URLs. Return ONLY valid JSON. No additional text.`.trim();
-    }
+      Available tabs:
+      ${tabsInfo}
+
+      Return a JSON response with:
+      - action: "organize_tabs"
+      - output: { tabs: [{ group_name: "category", tabs: [{ title, url, description }, ...] }, ...] }
+      - confidence: a number between 0 and 1
+
+      Return ONLY valid JSON. No additional text.
+    `.trim();
+    break;
+
+  case "generate_tabs":
+    query = `
+      You are a tab generation assistant. Create a list of useful tabs/URLs based on the user's request.
+
+      User request: "${prompt}"
+
+      Return a JSON response with:
+      - action: "generate_tabs"
+      - output: { group_name: "descriptive name", tabs: [{ title: "page title", url: "full url", description: "what it's for" }, ...] }
+      - confidence: a number between 0 and 1
+
+      Generate 5–10 relevant, high-quality URLs. Return ONLY valid JSON. No additional text.
+    `.trim();
+    break;
+
+  // === BOOKMARK INTENTS ===
+  case "remove_bookmarks":
+    query = `
+      You are a Chrome assistant managing the user's bookmarks.
+
+      Here is the user's full bookmark tree in JSON:
+      ${bookmark_tree}
+
+      The user said: "${prompt}"
+
+      Your task:
+      - Identify ONLY the bookmarks (not folders) the user explicitly asked to remove.
+      - Do NOT invent bookmarks that aren't in the tree.
+      - If nothing matches, return an empty list [].
+
+      Return ONLY valid JSON in this format:
+      { "action": "remove_bookmarks", "output": { "bookmarks": [...] }, "confidence": 0.X }
+    `.trim();
+    break;
+
+  case "search_bookmarks":
+    query = `
+      You are a Chrome assistant managing the user's bookmarks.
+
+      Here is the user's full bookmark tree in JSON:
+      ${bookmark_tree}
+
+      The user said: "${prompt}"
+
+      Your task:
+      - Look through the provided bookmarks, and return only ONE that best matches their description.
+
+      Return ONLY valid JSON in this format:
+      { "action": "search_bookmarks", "output": { "bookmarks": [...] }, "confidence": 0.X }
+    `.trim();
+    break;
+
+  case "organize_bookmarks":
+  query = `
+  You are an intelligent Chrome bookmark organizer.
+
+  User request:
+  ${prompt}
+
+  You are given:
+  - Open tabs: ${tabsInfo}
+  - Existing bookmarks (as tree): ${bookmark_tree}
+
+  What you must do:
+  - Reorganize bookmarks by suggesting which existing folder each bookmark should move to.
+  - If user requests, add tabs as bookmarks under existing folders.
+  - Use only existing folders (do NOT invent new ones unless the user explicitly asks).
+  - Do NOT return the full bookmark tree — just a list of bookmarks and their target folders.
+  - Bookmarks just under the bookmarks bar, mobile bookmarks or other bookmarks but not directly inside another folder count as unorganized
+
+  Return ONLY valid JSON in this format:
+  {
+    "action": "organize_bookmarks",
+    "output": {
+      "reorganized_bookmarks": [
+        { "id": "bookmark_id", "move_to_folder": "folder_title" }
+      ],
+      "tabs_to_add": [
+        { "tab_title": "example", "tab_url": "url", "folder_title": "folder" }
+      ]
+    },
+    "confidence": 0.X
+  }
+  `.trim();
+  break;
+
+
+  default:
+    console.warn("Unknown intent:", intent);
+    return null;
+}
+
 
     // Send message to content script to call local model with schema
     return await new Promise((resolve) => {
