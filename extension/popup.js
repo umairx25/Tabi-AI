@@ -8,7 +8,8 @@ import { getIntent, executeIntent, generateAISuggestion, generateLoadingMessage,
 
 const input = document.getElementById("search-input");
 const results = document.getElementById("results");
-const BACKEND_URL = "http://127.0.0.1:8010";
+const LOCAL_URL = "http://127.0.0.1:8010";
+const BACKEND_URL = "https://tabi-ai-8x9h.onrender.com";
 
 let ai_suggestion;
 const suggestionOverlay = document.getElementById("autocomplete-suggestion");
