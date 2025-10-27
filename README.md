@@ -128,9 +128,11 @@ Tabi uses an **intelligent routing system** that optimizes for speed, privacy, a
 
 ### 🧭 2. Chrome Extension Setup
 
+0. Follow the instructionson this page to turn on experimental features and instantiate the prompt and writer APIs: `https://developer.chrome.com/docs/ai/built-in-apis` **(ensure you have 20 GB of storage left on your computer)**
 1. Open Chrome → `chrome://extensions/`
 2. Enable **Developer Mode** (toggle in top-right)
 3. Click **Load unpacked**
+
 4. Select the `extension/` folder from the repository
 
 5. Pin Tabi to your toolbar
