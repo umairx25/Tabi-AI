@@ -306,7 +306,7 @@ switch (intent) {
       User request: "${prompt}"
 
       Available tabs:
-      ${tabsInfo}
+      ${tabsText}
 
       Return a JSON response with:
       - action: "close_tabs"

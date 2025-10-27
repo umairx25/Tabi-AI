@@ -291,7 +291,6 @@ async function handleAgentResponse(result, tabs, focusedWin) {
       break;
 
     case "close_tabs":
-      // console.log("Right place reached, output of: ", result.output.tabs)
       await handleTabClosures(result.output.tabs);
       setStatus("Your tab have been cleaned up!");
       break;
@@ -418,6 +417,8 @@ async function switchToTab(title) {
  * Close tabs that match the given list of titles or objects
  */
 async function handleTabClosures(toCloseTabs) {
+
+  console.log(`Handle tab closures receievd ${toCloseTabs} of type ${typeof(toCloseTabs)}`);
 
   const windows = await chrome.windows.getAll({ windowTypes: ["normal"] });
   const focusedWin = windows.find(w => w.focused) || windows[0];
