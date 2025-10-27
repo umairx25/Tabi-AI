@@ -1,6 +1,6 @@
 # Tabi – Your AI Browser Copilot
 
-Tabi is an **AI-powered Chrome assistant** that understands natural language commands to help you manage your tabs, bookmarks, and browsing context intelligently.
+Tabi is a privacy-first **AI-powered Chrome assistant** that understands natural language commands to help you manage your tabs, bookmarks, and browsing context intelligently.
 
 It combines **on-device Chrome AI (Gemini Nano)** with a **cloud-based reasoning engine** to deliver fast, privacy-preserving, and context-aware browser automation.
 
@@ -16,6 +16,10 @@ Tabi lets you control your browser using natural language.
 - "Find the CNN article I opened earlier."
 - "Bookmark these AI papers under 'Work'."
 - "Set up tabs for planning a trip to Japan."
+
+[![Watch the video](https://img.youtube.com/vi/gLh0bX87wIg/maxresdefault.jpg)](https://youtu.be/gLh0bX87wIg)
+
+#### [Watch this video on YouTube](https://youtu.be/gLh0bX87wIg)
 
 ### ✨ Key Features
 
